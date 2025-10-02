@@ -1,0 +1,249 @@
+-- УДАЛЕНИЕ СУЩЕСТВУЮЩИХ ТАБЛИЦ (в порядке, обратном зависимостям)
+DROP TABLE IF EXISTS VisitTreatments;
+DROP TABLE IF EXISTS VisitDiagnoses;
+DROP TABLE IF EXISTS Visits;
+DROP TABLE IF EXISTS PatientPhones;
+DROP TABLE IF EXISTS Doctors;
+DROP TABLE IF EXISTS Patients;
+DROP TABLE IF EXISTS Treatments;
+DROP TABLE IF EXISTS Diagnoses;
+DROP TABLE IF EXISTS Departments;
+
+-- Отделения
+CREATE TABLE Departments (
+    DepartmentID INT IDENTITY(1,1) PRIMARY KEY,
+    DepartmentName NVARCHAR(100) NOT NULL
+);
+
+-- Врачи
+CREATE TABLE Doctors (
+    DoctorID INT IDENTITY(1,1) PRIMARY KEY,
+    DoctorName NVARCHAR(100) NOT NULL,
+    Specialty NVARCHAR(100),
+    DepartmentID INT,
+    FOREIGN KEY (DepartmentID) REFERENCES Departments(DepartmentID)
+);
+
+-- Пациенты
+CREATE TABLE Patients (
+    PatientID INT IDENTITY(1,1) PRIMARY KEY,
+    PatientName NVARCHAR(100) NOT NULL,
+    City NVARCHAR(50),
+    Street NVARCHAR(100),
+    Building NVARCHAR(10)
+);
+
+-- Телефоны пациентов
+CREATE TABLE PatientPhones (
+    PhoneID INT IDENTITY(1,1) PRIMARY KEY,
+    PatientID INT,
+    PhoneNumber NVARCHAR(20),
+    FOREIGN KEY (PatientID) REFERENCES Patients(PatientID)
+);
+
+-- Диагнозы
+CREATE TABLE Diagnoses (
+    DiagnosisID INT IDENTITY(1,1) PRIMARY KEY,
+    DiagnosisName NVARCHAR(100) NOT NULL UNIQUE
+);
+
+-- Виды лечения
+CREATE TABLE Treatments (
+    TreatmentID INT IDENTITY(1,1) PRIMARY KEY,
+    TreatmentName NVARCHAR(100) NOT NULL UNIQUE
+);
+
+-- Приёмы
+CREATE TABLE Visits (
+    VisitID INT IDENTITY(1,1) PRIMARY KEY,
+    PatientID INT,
+    DoctorID INT,
+    VisitDate DATE NOT NULL,
+    FOREIGN KEY (PatientID) REFERENCES Patients(PatientID),
+    FOREIGN KEY (DoctorID) REFERENCES Doctors(DoctorID)
+);
+
+-- Диагнозы по приёмам
+CREATE TABLE VisitDiagnoses (
+    VisitID INT,
+    DiagnosisID INT,
+    PRIMARY KEY (VisitID, DiagnosisID),
+    FOREIGN KEY (VisitID) REFERENCES Visits(VisitID),
+    FOREIGN KEY (DiagnosisID) REFERENCES Diagnoses(DiagnosisID)
+);
+
+-- Назначения по приёмам
+CREATE TABLE VisitTreatments (
+    VisitID INT,
+    TreatmentID INT,
+    PRIMARY KEY (VisitID, TreatmentID),
+    FOREIGN KEY (VisitID) REFERENCES Visits(VisitID),
+    FOREIGN KEY (TreatmentID) REFERENCES Treatments(TreatmentID)
+);
+
+-- ================================================
+-- ЗАПОЛНЕНИЕ ДАННЫМИ
+-- ================================================
+
+-- Отделения
+INSERT INTO Departments (DepartmentName) VALUES
+('Терапевтическое'),
+('Хирургическое'),
+('Диагностическое'),
+('Неврологическое');
+
+-- Врачи (включая команду из "Доктор Хаус")
+INSERT INTO Doctors (DoctorName, Specialty, DepartmentID) VALUES
+-- Оригинальные
+('Иванова Е.П.', 'Терапевт', 1),
+('Петров С.К.', 'Хирург', 2),
+-- Доктор Хаус и команда
+('Грегори Хаус', 'Диагност, Нефролог', 3),
+('Элисон Камерон', 'Иммунолог', 3),
+('Роберт Чейз', 'Хирург, Интенсивист', 2),
+('Эрик Форман', 'Невролог', 4);
+
+-- Пациенты (добавлены новые)
+INSERT INTO Patients (PatientName, City, Street, Building) VALUES
+('Сидоров А.В.', 'Москва', 'ул. Садовая', '7'),
+('Кузнецова М.Л.', 'Санкт-Петербург', 'пр. Невский', '25'),
+('Джон Майклсон', 'Принстон', 'Oak Street', '12'),
+('Сара Коннор', 'Лос-Анджелес', 'Highland Ave', '45'),
+('Майкл Болтон', 'Нью-Йорк', '5th Avenue', '100');
+
+-- Телефоны пациентов
+INSERT INTO PatientPhones (PatientID, PhoneNumber) VALUES
+(1, '+7-900-111-22-33'),
+(1, '+7-900-444-55-66'),
+(2, '+7-911-222-33-44'),
+(3, '+1-609-555-0123'),
+(4, '+1-213-555-0187'),
+(5, '+1-212-555-0199');
+
+-- Диагнозы (расширены)
+INSERT INTO Diagnoses (DiagnosisName) VALUES
+('Грипп'),
+('Бронхит'),
+('Аппендицит'),
+('Саркоидоз'),
+('Люпус'),
+('Рассеянный склероз'),
+('Опухоль головного мозга'),
+('Инфекционный эндокардит');
+
+-- Виды лечения (расширены)
+INSERT INTO Treatments (TreatmentName) VALUES
+('Антибиотики'),
+('Покой'),
+('Жаропонижающее'),
+('Операция'),
+('Иммуносупрессанты'),
+('МРТ'),
+('Биопсия'),
+('Плазмаферез');
+
+-- Приёмы (включая новых пациентов и врачей из Хауса)
+INSERT INTO Visits (PatientID, DoctorID, VisitDate) VALUES
+-- Оригинальные
+(1, 1, '2024-03-01'),  -- Сидоров → Иванова
+(2, 2, '2024-03-02'),  -- Кузнецова → Петров
+-- Новые (Хаус и команда)
+(3, 3, '2024-03-05'),  -- Джон → Хаус
+(4, 4, '2024-03-06'),  -- Сара → Камерон
+(4, 6, '2024-03-07'),  -- Сара → Форман (второй приём)
+(5, 5, '2024-03-08');  -- Майкл → Чейз
+
+-- Диагнозы по приёмам
+INSERT INTO VisitDiagnoses (VisitID, DiagnosisID) VALUES
+-- Оригинальные
+(1, 1), -- Грипп
+(1, 2), -- Бронхит
+(2, 3), -- Аппендицит
+-- Новые
+(3, 4), -- Саркоидоз (Хаус)
+(4, 5), -- Люпус (Камерон)
+(5, 6), -- Рассеянный склероз (Форман)
+(6, 7); -- Опухоль головного мозга (Чейз)
+
+-- Назначения по приёмам
+INSERT INTO VisitTreatments (VisitID, TreatmentID) VALUES
+-- Оригинальные
+(1, 1), -- Антибиотики
+(1, 2), -- Покой
+(1, 3), -- Жаропонижающее
+(2, 4), -- Операция
+(2, 1), -- Антибиотики
+-- Новые
+(3, 5), -- Иммуносупрессанты
+(3, 6), -- МРТ
+(4, 5), -- Иммуносупрессанты
+(5, 6), -- МРТ
+(5, 8), -- Плазмаферез
+(6, 7), -- Биопсия
+(6, 4); -- Операция
+
+-- ================================================
+-- КОНТРОЛЬНЫЕ ЗАПРОСЫ
+-- ================================================
+
+-- 1. Восстановление исходного представления
+SELECT
+    v.VisitID,
+    p.PatientName,
+    STRING_AGG(ph.PhoneNumber, ', ') AS PatientPhones,
+    CONCAT(p.City, ', ', p.Street, ', ', p.Building) AS PatientAddress,
+    d.DoctorName,
+    d.Specialty AS DoctorSpecialty,
+    STRING_AGG(diag.DiagnosisName, ', ') AS Diagnoses,
+    STRING_AGG(tr.TreatmentName, ', ') AS Treatments,
+    v.VisitDate,
+    dep.DepartmentName AS ClinicDepartment
+FROM Visits v
+    JOIN Patients p ON v.PatientID = p.PatientID
+    LEFT JOIN PatientPhones ph ON p.PatientID = ph.PatientID
+    JOIN Doctors d ON v.DoctorID = d.DoctorID
+    JOIN Departments dep ON d.DepartmentID = dep.DepartmentID
+    LEFT JOIN VisitDiagnoses vd ON v.VisitID = vd.VisitID
+    LEFT JOIN Diagnoses diag ON vd.DiagnosisID = diag.DiagnosisID
+    LEFT JOIN VisitTreatments vt ON v.VisitID = vt.VisitID
+    LEFT JOIN Treatments tr ON vt.TreatmentID = tr.TreatmentID
+GROUP BY
+    v.VisitID, p.PatientName, p.City, p.Street, p.Building,
+    d.DoctorName, d.Specialty, v.VisitDate, dep.DepartmentName
+ORDER BY v.VisitID;
+
+-- 2. Статистика по диагнозам
+SELECT
+    diag.DiagnosisName,
+    COUNT(*) AS DiagnosisCount
+FROM Diagnoses diag
+    JOIN VisitDiagnoses vd ON diag.DiagnosisID = vd.DiagnosisID
+GROUP BY diag.DiagnosisName
+ORDER BY DiagnosisCount DESC;
+
+-- 3. Все приёмы у доктора Хауса
+SELECT
+    p.PatientName,
+    v.VisitDate,
+    STRING_AGG(diag.DiagnosisName, ', ') AS Diagnoses,
+    STRING_AGG(tr.TreatmentName, ', ') AS Treatments
+FROM Visits v
+    JOIN Patients p ON v.PatientID = p.PatientID
+    JOIN Doctors d ON v.DoctorID = d.DoctorID
+    LEFT JOIN VisitDiagnoses vd ON v.VisitID = vd.VisitID
+    LEFT JOIN Diagnoses diag ON vd.DiagnosisID = diag.DiagnosisID
+    LEFT JOIN VisitTreatments vt ON v.VisitID = vt.VisitID
+    LEFT JOIN Treatments tr ON vt.TreatmentID = tr.TreatmentID
+WHERE d.DoctorName = 'Грегори Хаус'
+GROUP BY p.PatientName, v.VisitDate;
+
+-- 4. Врачи и количество приёмов
+SELECT
+    d.DoctorName,
+    dep.DepartmentName,
+    COUNT(v.VisitID) AS TotalVisits
+FROM Doctors d
+    JOIN Departments dep ON d.DepartmentID = dep.DepartmentID
+    LEFT JOIN Visits v ON d.DoctorID = v.DoctorID
+GROUP BY d.DoctorName, dep.DepartmentName
+ORDER BY TotalVisits DESC;
